@@ -1,0 +1,19 @@
+{
+  "name": "right-strike-demo",
+  "version": "1.0.0",
+  "description": "Right Strike Martial Arts Club website",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "node server.js",
+    "start": "node server.js"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  },
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1"
+  }
+}

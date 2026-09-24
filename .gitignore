@@ -1,0 +1,9 @@
+.env
+node_modules/
+.DS_Store
+.dev.vars
+.wrangler/
+debug.txt
+fix_encoding.js
+openrouter_models.txt
+test*.mjs
