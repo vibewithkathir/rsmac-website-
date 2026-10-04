@@ -1,31 +1,34 @@
-const path = require('path');
-const express = require('express');
-const cors = require('cors');
-require('dotenv').config();
-
-const app = express();
-app.use(cors());
-app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
-
-const API_KEY = process.env.GROQ_API_KEY;
-
-// Groq model fallback chain (verified working with this API key)
+// Groq model fallback chain
 const MODELS = [
     "openai/gpt-oss-120b",
     "openai/gpt-oss-20b",
     "qwen/qwen3.8-27b",
 ];
 
-async function handleChat(req, res) {
-    const apiKey = process.env.GROQ_API_KEY || API_KEY;
+module.exports = async (req, res) => {
+    // CORS headers
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+
+    if (req.method !== 'POST') {
+        return res.status(405).json({ error: 'Method Not Allowed' });
+    }
+
+    const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
         return res.status(500).json({ error: "Missing GROQ_API_KEY in environment variables" });
     }
 
-    const messages = req.body && req.body.messages;
+    const body = req.body || {};
+    const messages = body.messages;
+
     if (!messages || !Array.isArray(messages)) {
-        return res.status(400).json({ error: "Missing or invalid messages array" });
+        return res.status(400).json({ error: "Invalid or missing messages array" });
     }
 
     let lastError = null;
@@ -62,8 +65,7 @@ async function handleChat(req, res) {
             }
 
             // Success
-            console.log(`[chat] Responded using model: ${model}`);
-            return res.json(data);
+            return res.status(200).json(data);
 
         } catch (err) {
             console.error(`[chat] Fetch error for model ${model}:`, err.message);
@@ -71,34 +73,6 @@ async function handleChat(req, res) {
         }
     }
 
-    // All models exhausted
     console.error("[chat] All models failed or rate-limited.");
     return res.status(429).json({ error: "API_ALL_MODELS_BUSY" });
-}
-
-app.post('/api/chat', handleChat);
-
-// Explicit root route
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// Fallback for static HTML pages or unknown routes (Express 5 compatible)
-app.use((req, res) => {
-    const filePath = path.join(__dirname, 'public', req.path);
-    res.sendFile(filePath, (err) => {
-        if (err) {
-            res.sendFile(path.join(__dirname, 'public', 'index.html'));
-        }
-    });
-});
-
-module.exports = app;
-
-if (require.main === module) {
-    const PORT = process.env.PORT || 3005;
-    app.listen(PORT, () => {
-        console.log(`✅ Server running at http://localhost:${PORT}`);
-        console.log(`🔑 Groq key loaded: ${API_KEY ? '...' + API_KEY.slice(-6) : 'MISSING'}`);
-    });
-}
+};
